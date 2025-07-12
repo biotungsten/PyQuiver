@@ -4,3 +4,8 @@
 #  1 = reasonable level of printing
 #  0 = minimal printing
 DEBUG = 0
+
+# MACHINE_READABLE global variable
+# If True, the output will be formatted for machine readability.
+# If False, the output will be formatted for human readability
+MACHINE_READABLE = True

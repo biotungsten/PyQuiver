@@ -2,6 +2,7 @@
 import numpy as np
 #from quiver import System, Isotopologue, DEBUG
 import quiver
+import json
 import settings
 from config import Config
 from constants import DEFAULT_MASSES
@@ -179,30 +180,45 @@ class KIE_Calculation(object):
                 sub_gs = quiver.Isotopologue(id_, gs_system, gs_masses)
                 sub_ts = quiver.Isotopologue(id_, ts_system, ts_masses)
                 yield ((default_gs, sub_gs), (default_ts, sub_ts))
-               
-    def __str__(self):
-        string = "\n=== PyQuiver Analysis ===\n"
-        if self.eie_flag == 0:
-            string += "Isotopologue                                              uncorrected      Wigner     inverted parabola\n"
-            string += "                                                              KIE           KIE              KIE"
-        else:
-            string += "Isotopologue                                                  EIE"
+
+    def machine_readable_string(self):
         keys = list(self.KIES.keys())
-        if self.config.reference_isotopologue != "default" and self.config.reference_isotopologue != "none":
-            keys.remove(self.config.reference_isotopologue)
-        if self.config.mass_override_isotopologue != "default":
-            keys.remove(self.config.mass_override_isotopologue)
-        #keys.sort()
+        data = {}
         for name in keys:
-            string += "\n" + str(self.KIES[name])
+            KIE_obj = self.KIES[name]
+            data[KIE_obj.name] = {"uncorrected": KIE_obj.value[0],
+                                  "wigner": KIE_obj.value[1],
+                                  "inverted_parabola": KIE_obj.value[2]}
+        return json.dumps(data)
 
-        if self.config.reference_isotopologue != "default" and self.config.reference_isotopologue != "none":
-            string += "\n\nKIEs referenced to isotopologue {0}, whose absolute KIEs are:".format(self.config.reference_isotopologue)
-            string += "\n" + str(self.KIES[self.config.reference_isotopologue])
+    def __str__(self):
+        if settings.MACHINE_READABLE:
+            if self.eie_flag != 0:
+                raise ValueError("KIE_Calculation object cannot be printed in machine-readable format if it is an EIE calculation.")
+            return self.machine_readable_string()
+            # KIE.name, KIE.value[1,2,3] alsol check no eie flag
+            # read in whether machine readable from 
         else:
-            string += "\n\nAbsolute KIEs are given."
-
-        return string
+            string = "\n=== PyQuiver Analysis ===\n"
+            if self.eie_flag == 0:
+                string += "Isotopologue                                              uncorrected      Wigner     inverted parabola\n"
+                string += "                                                              KIE           KIE              KIE"
+            else:
+                string += "Isotopologue                                                  EIE"
+            keys = list(self.KIES.keys())
+            if self.config.reference_isotopologue != "default" and self.config.reference_isotopologue != "none":
+                keys.remove(self.config.reference_isotopologue)
+            if self.config.mass_override_isotopologue != "default":
+                keys.remove(self.config.mass_override_isotopologue)
+            #keys.sort()
+            for name in keys:
+                string += "\n" + str(self.KIES[name])
+            if self.config.reference_isotopologue != "default" and self.config.reference_isotopologue != "none":
+                string += "\n\nKIEs referenced to isotopologue {0}, whose absolute KIEs are:".format(self.config.reference_isotopologue)
+                string += "\n" + str(self.KIES[self.config.reference_isotopologue])
+            else:
+                string += "\n\nAbsolute KIEs are given."
+            return string
 
 class KIE(object):
     # the constructor expects a tuple of the form yielded by make_isotopologue

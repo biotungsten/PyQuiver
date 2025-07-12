@@ -3,6 +3,7 @@ import sys
 import re
 import os
 import inspect
+import settings
 ###############
 
 # Physical Constants
@@ -124,7 +125,8 @@ for line in open(root + "/weights.dat", "r"):
             element.add_replacement(fields[i], fields[i+1])
     elements.append(element)
     #print element
-print("Read atomic weight data for %d elements." % len(elements))
+if settings.MACHINE_READABLE == False:
+    print("Read atomic weight data for %d elements." % len(elements))
 
 # map from atomic number to default masses
 DEFAULT_MASSES = { e.atomic_number : e.default_mass for e in elements }
