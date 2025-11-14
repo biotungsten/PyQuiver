@@ -41,6 +41,9 @@ class KIE_Calculation(object):
         # set the eie_flag to the recognized uninitialized value (used for checking if there are inconsistent calculation types)
         self.eie_flag = -1
 
+        # initialize frequency output
+
+
         if settings.DEBUG != 0:
             print(self.config)
             
@@ -189,7 +192,9 @@ class KIE_Calculation(object):
             data[KIE_obj.name] = {"uncorrected": KIE_obj.value[0],
                                   "wigner": KIE_obj.value[1],
                                   "inverted_parabola": KIE_obj.value[2]}
-        return json.dumps(data)
+            if SETTINGS.REPORT_REAL_FREQUENCIES:
+                data[KIE_obj.name]["frequencies"] = KIE_obj.frequencies
+        return json.dumps(data, default=lambda o: o.tolist() if hasattr(o, "tolist") else float(o))
 
     def __str__(self):
         if settings.MACHINE_READABLE:
@@ -234,7 +239,7 @@ class KIE(object):
 
         if settings.DEBUG >= 2:
             print("Calculating KIE for isotopologue {0}.".format(name))
-        self.value = self.calculate_kie()
+        self.value, self.frequencies = self.calculate_kie()
 
     def calculate_kie(self):
         if settings.DEBUG >= 2:
@@ -249,6 +254,11 @@ class KIE(object):
         if settings.DEBUG >= 2:
             print("    rpfr_ts:", np.prod(rpfr_ts))
 
+        frequencies = {"gs": {"light": np.array(gs_light_freqs),
+                              "heavy": np.array(gs_heavy_freqs)},
+                       "ts": {"light": np.array(ts_light_freqs),
+                              "heavy": np.array(ts_heavy_freqs),
+                              "imaginary_ratios": ts_imag_ratios}} # This might contain multiple imaginary ratios one for each tunnelling correction in order raw, wigner, inverted parabola
         if ts_imag_ratios is not None:
             if self.eie_flag == -1:
                 self.eie_flag = 0
@@ -256,7 +266,7 @@ class KIE(object):
                 raise ValueError("quiver attempted to run a KIE calculation after an EIE calculation. Check the frequency threshold.")
 
             kies = ts_imag_ratios * rpfr_gs/rpfr_ts
-            return kies
+            return (kies, frequencies)
         else:
             if self.eie_flag == -1:
                 self.eie_flag = 1
@@ -264,7 +274,7 @@ class KIE(object):
                 raise ValueError("quiver attempted to run a KIE calculation after an EIE calculation. Check the frequency threshold.")
             
             eie = rpfr_gs/rpfr_ts
-            return eie
+            return (eie, frequencies)
 
     def apply_reference(self, reference_kie):
         self.value /= reference_kie.value
