@@ -7,86 +7,131 @@ from collections import OrderedDict
 
 # Reads PyQuiver .config files.
 class Config(object):
-    def __init__(self,filename):
-        expected_fields = "scaling temperature mass_override_isotopologue reference_isotopologue imag_threshold frequency_threshold".split(" ")
-        config = { i : None for i in expected_fields }
-        config["filename"] = filename
-
-        print_message = True
-        try:
-            f=list(sys._current_frames().values())[0]
-            if "autoquiver" in f.f_back.f_back.f_globals['__file__']:
-                print_message = False
-        except:
-            pass
-        if print_message and settings.DEBUG >= 2:
-            print("\nReading configuration from {0}".format(filename))
-
+    def __init__(self,filename=None,dict_config=None, use_dict=False):
+        if not filename and not dict_config:
+            raise ValueError("must provide either filename or dict_config")
+        
         # a list of isotopologues
         # each entry is a list of tuples
         # each tuple is (from_atom_number, to_atom_number, replacement_isotope)
         # this format allows for multiple replacements in one isotopologue
         isotopologues = OrderedDict()
 
-        # read file
-        for line in open(filename, "r"):
-            # ignore comments and blank lines
-            line = line.strip()
-            if len(line) == 0 or line[0] == "#":
-                continue
-            line = line.split("#", 1)[0]
+        expected_fields = "scaling temperature mass_override_isotopologue reference_isotopologue imag_threshold frequency_threshold".split(" ")
+        config = { i : None for i in expected_fields }
 
-            # read space-delimited data
-            fields = [_f for _f in line.split(" ") if _f]
+        if filename:
+            config["filename"] = filename
 
-            # for backwards compatibility with quiver
-            if fields[0] == "isotopomer":
-                fields[0] = "isotopologue"
-            elif fields[0] == "reference_isotopomer":
-                fields[0] = "reference_isotopologue"
-            elif fields[0] == "mass_override_isotopomer":
-                fields[0] = "mass_override_isotopologue"
+            print_message = True
+            try:
+                f=list(sys._current_frames().values())[0]
+                if "autoquiver" in f.f_back.f_back.f_globals['__file__']:
+                    print_message = False
+            except:
+                pass
+            if print_message and settings.DEBUG >= 2:
+                print("\nReading configuration from {0}".format(filename))
+
+            # read file
+            for line in open(filename, "r"):
+                # ignore comments and blank lines
+                line = line.strip()
+                if len(line) == 0 or line[0] == "#":
+                    continue
+                line = line.split("#", 1)[0]
+
+                # read space-delimited data
+                fields = [_f for _f in line.split(" ") if _f]
+
+                # for backwards compatibility with quiver
+                if fields[0] == "isotopomer":
+                    fields[0] = "isotopologue"
+                elif fields[0] == "reference_isotopomer":
+                    fields[0] = "reference_isotopologue"
+                elif fields[0] == "mass_override_isotopomer":
+                    fields[0] = "mass_override_isotopologue"
 
 
-            # parse
-            if fields[0] == "isotopologue":
-                # parse isotopologues, checking for sanity
-                if len(fields) != 5:
-                    raise ValueError("unexpected number of fields for isotopologue in config file:\n%s" % line)
-                isotopologue_id, from_atom_number, to_atom_number, replacement = str(fields[1]), int(fields[2]), int(fields[3]), str(fields[4])
-                if isotopologue_id == "default":
-                    raise ValueError("name default is reserved.")
-                if from_atom_number < 1 or to_atom_number < 1:
-                    raise ValueError("check atom numbers:\n%s" % line)
-                if replacement not in list(REPLACEMENTS.keys()):
-                    raise ValueError("invalid isotopic replacement:\n%s" % line)
+                # parse
+                if fields[0] == "isotopologue":
+                    # parse isotopologues, checking for sanity
+                    if len(fields) != 5:
+                        raise ValueError("unexpected number of fields for isotopologue in config file:\n%s" % line)
+                    isotopologue_id, from_atom_number, to_atom_number, replacement = str(fields[1]), int(fields[2]), int(fields[3]), str(fields[4])
+                    if isotopologue_id == "default":
+                        raise ValueError("name default is reserved.")
+                    if from_atom_number < 1 or to_atom_number < 1:
+                        raise ValueError("check atom numbers:\n%s" % line)
+                    if replacement not in list(REPLACEMENTS.keys()):
+                        raise ValueError("invalid isotopic replacement:\n%s" % line)
 
-                # allows for the fact that isotopologues can make multiple replacements
-                try:
-                    isotopologues[isotopologue_id].append((from_atom_number, to_atom_number, replacement))
-                except KeyError:
-                    isotopologues[isotopologue_id] = [(from_atom_number, to_atom_number, replacement)]
+                    # allows for the fact that isotopologues can make multiple replacements
+                    try:
+                        isotopologues[isotopologue_id].append((from_atom_number, to_atom_number, replacement))
+                    except KeyError:
+                        isotopologues[isotopologue_id] = [(from_atom_number, to_atom_number, replacement)]
 
-            elif len(fields) == 2:
-                # read regular configuration fields that have only one entry
-                fields = [ str(i) for i in fields ]
-                if fields[0] not in expected_fields:
-                    raise ValueError("unexpected config field:\n%s" % line)
-                config[fields[0]] = fields[1]
-            else:
-                raise ValueError("unexpected number of fields in config file:\n%s" % line)
-
-        # ensure we have all the fields we are supposed to
-        for k,v in config.items():
-            if k == "frequency_threshold" and v is not None:
-                print("*** Warning: frequency_threshold is now deprecated and will be ignored. ***")
-            if v is None:
-                if k == "frequency_threshold":
-                    config["frequency_threshold"] = 0.0
+                elif len(fields) == 2:
+                    # read regular configuration fields that have only one entry
+                    fields = [ str(i) for i in fields ]
+                    if fields[0] not in expected_fields:
+                        raise ValueError("unexpected config field:\n%s" % line)
+                    config[fields[0]] = fields[1]
                 else:
-                    raise ValueError("missing config file field: %s" % k)
-        if len(isotopologues) == 0:
-            raise ValueError("must specify at least one isotopologue")
+                    raise ValueError("unexpected number of fields in config file:\n%s" % line)
+
+            # ensure we have all the fields we are supposed to
+            for k,v in config.items():
+                if k == "frequency_threshold" and v is not None:
+                    print("*** Warning: frequency_threshold is now deprecated and will be ignored. ***")
+                if v is None:
+                    if k == "frequency_threshold":
+                        config["frequency_threshold"] = 0.0
+                    else:
+                        raise ValueError("missing config file field: %s" % k)
+                    
+            if len(isotopologues) == 0:
+                raise ValueError("must specify at least one isotopologue")
+            
+            config["isotopologues"] = isotopologues
+                    
+        if use_dict:
+            # Structure of dict_config:
+            # {
+            #   "scaling" : float,
+            #   "temperature" : float,
+            #   "mass_override_isotopologue" : str, 
+            #   "reference_isotopologue" : str,
+            #   "imag_threshold" : float,
+            #   "isotopologues" : {
+            #         "iso1" : [ (from_atom_number, to_atom_number, replacement), ... ],
+            #         ...
+            #    }
+            # }
+            if not dict_config:
+                raise ValueError("must provide dict_config if use_dict is True")
+            for k in config.keys():
+                try:
+                    config[k] = dict_config[k]
+                except KeyError:
+                    if k == "frequency_threshold":
+                        config["frequency_threshold"] = 0.0
+                    else:
+                        raise ValueError("missing config field in dict_config: %s" % k)
+            isotopologues = dict_config["isotopologues"]
+            if len(isotopologues) == 0:
+                raise ValueError("must specify at least one isotopologue in dict_config")
+            for k,v in isotopologues.items():
+                config["isotopologues"][k] = []
+                for r in range(len(v)):
+                    if len(v[r]) != 3:
+                        raise ValueError("isotopologue replacements must be tuples of length 3 (from_atom, to_atom, replacement)")
+                    config["isotopologues"][k].append(tuple(int(v[r][0]), int(v[r][1]), str(v[r][2])))
+                    if v[r][2] not in list(REPLACEMENTS.keys()):
+                        raise ValueError("invalid isotopic replacement in dict_config: %s" % v[r][2])
+
+        
 
         # check some of the other fields
         config["temperature"] = float(config["temperature"])
@@ -115,7 +160,6 @@ class Config(object):
             raise ValueError("imag threshold is too high")
 
         # store all the information in the object dictionary
-        config["isotopologues"] = isotopologues
         self.__dict__ = config
 
     # checks if this config file is compatible with a pair of ground and transition state systems
