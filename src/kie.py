@@ -191,6 +191,8 @@ class KIE_Calculation(object):
                                   "inverted_parabola": KIE_obj.value[2]}
             if settings.REPORT_REAL_FREQUENCIES:
                 data[KIE_obj.name]["frequencies"] = KIE_obj.frequencies
+            if settings.REPORT_PARTITION_FACTORS:
+                data[KIE_obj.name]["pfs"] = KIE_obj.pfs
         return data
 
     def machine_readable_string(self):
@@ -240,26 +242,27 @@ class KIE(object):
 
         if settings.DEBUG >= 2:
             print("Calculating KIE for isotopologue {0}.".format(name))
-        self.value, self.frequencies = self.calculate_kie()
+        self.value, self.frequencies, self.pfs = self.calculate_kie()
 
     def calculate_kie(self):
         if settings.DEBUG >= 2:
             print("  Calculating Reduced Partition Function Ratio for Ground State.")
-        rpfr_gs, gs_imag_ratios, gs_heavy_freqs, gs_light_freqs = calculate_rpfr(self.gs_tuple, self.imag_threshold, self.scaling, self.temperature)
+        rpfr_gs, gs_imag_ratios, gs_heavy_freqs, gs_light_freqs, gs_pfs = calculate_rpfr(self.gs_tuple, self.imag_threshold, self.scaling, self.temperature)
         if settings.DEBUG >= 2:
             print("    rpfr_gs:", np.prod(rpfr_gs))
         if settings.DEBUG >= 2:
             print("  Calculating Reduced Partition Function Ratio for Transition State.")
-
-        rpfr_ts, ts_imag_ratios, ts_heavy_freqs, ts_light_freqs = calculate_rpfr(self.ts_tuple, self.imag_threshold, self.scaling, self.temperature)
+        rpfr_ts, ts_imag_ratios, ts_heavy_freqs, ts_light_freqs, ts_pfs = calculate_rpfr(self.ts_tuple, self.imag_threshold, self.scaling, self.temperature)
         if settings.DEBUG >= 2:
             print("    rpfr_ts:", np.prod(rpfr_ts))
-
+        
         frequencies = {"gs": {"light": np.array(gs_light_freqs),
                               "heavy": np.array(gs_heavy_freqs)},
                        "ts": {"light": np.array(ts_light_freqs),
                               "heavy": np.array(ts_heavy_freqs),
                               "imaginary_ratios": ts_imag_ratios}} # This might contain multiple imaginary ratios one for each tunnelling correction in order raw, wigner, inverted parabola
+        pfs = {"gs": gs_pfs,
+               "ts": ts_pfs}
         if ts_imag_ratios is not None:
             if self.eie_flag == -1:
                 self.eie_flag = 0
@@ -267,7 +270,7 @@ class KIE(object):
                 raise ValueError("quiver attempted to run a KIE calculation after an EIE calculation. Check the frequency threshold.")
 
             kies = ts_imag_ratios * rpfr_gs/rpfr_ts
-            return (kies, frequencies)
+            return (kies, frequencies, pfs)
         else:
             if self.eie_flag == -1:
                 self.eie_flag = 1
@@ -275,7 +278,7 @@ class KIE(object):
                 raise ValueError("quiver attempted to run a KIE calculation after an EIE calculation. Check the frequency threshold.")
             
             eie = rpfr_gs/rpfr_ts
-            return (eie, frequencies)
+            return (eie, frequencies, pfs)
 
     def apply_reference(self, reference_kie):
         self.value /= reference_kie.value
@@ -329,7 +332,6 @@ def calculate_rpfr(tup, imag_threshold, scaling, temperature):
     # calculate_frequencies gives tuples of the form (small_freqs, imaginary_freqs, freqs)
     light_small_freqs, light_imag_freqs, light_freqs, light_num_small = tup[0].calculate_frequencies(imag_threshold, scaling=scaling)
     heavy_small_freqs, heavy_imag_freqs, heavy_freqs, heavy_num_small = tup[1].calculate_frequencies(imag_threshold, scaling=scaling)
-
     if len(heavy_freqs) != len(light_freqs):
         raise ValueError("mismatch in the number of frequencies between isotopomers!")
     if len(light_imag_freqs) != len(heavy_imag_freqs):
@@ -376,8 +378,7 @@ def calculate_rpfr(tup, imag_threshold, scaling, temperature):
     if settings.DEBUG >= 2:
         factors = np.prod(partition_factors, axis=0)
         print("{3: ^8}Product Factor: {0}\n{3: ^8}Excitation Factor: {1}\n{3: ^8}ZPE Factor: {2}".format(factors[0], factors[1], factors[2], ""))
-
-    return (np.prod(partition_factors), imag_ratios, np.array(heavy_freqs), np.array(light_freqs))
+    return (np.prod(partition_factors), imag_ratios, np.array(heavy_freqs), np.array(light_freqs), np.prod(partition_factors, axis=1))
 
 # calculates the Wigner tunnelling correction
 # multiplies the KIE by a factor of (1+u_H^2/24)/(1+u_D^2/24)

@@ -19,7 +19,6 @@ class Isotopologue(object):
         self.system = system
         self.masses = masses
         self.frequencies = None
-
         self.number_of_atoms = system.number_of_atoms
         self.mw_hessian = self.calculate_mw_hessian()
 
