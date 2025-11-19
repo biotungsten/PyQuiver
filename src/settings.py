@@ -13,4 +13,4 @@ MACHINE_READABLE = True
 # REPORT_REAL_FREQUENCIES global variable
 # If True, output will report the real frequencies of the transition state and ground state for all isotopologues.
 # If False, these frequencies will not be reported.
-REPORT_REAL_FREQUENCIES = False
+REPORT_REAL_FREQUENCIES = True

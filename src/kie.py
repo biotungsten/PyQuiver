@@ -20,7 +20,7 @@ class KIE_Calculation(object):
         if type(config) is str:
             self.config = Config(config)
         elif type(config) is Config:
-            self.config = Config
+            self.config = config
         else:
             raise TypeError("config argument must be either a filepath or Config object.")
 
@@ -49,9 +49,6 @@ class KIE_Calculation(object):
             
         KIES = OrderedDict()
 
-        if self.config.frequency_threshold:
-            print("WARNING: config file uses the frequency_threshold parameter. This has been deprecated and low frequencies are dropped by linearity detection.")
-
         for p in self.make_isotopologues():
             gs_tuple, ts_tuple = p
             name = gs_tuple[1].name
@@ -65,7 +62,7 @@ class KIE_Calculation(object):
                     self.eie_flag = k.eie_flag
                 else:
                     if self.eie_flag != k.eie_flag:
-                        if eie_flag == 1:
+                        if self.eie_flag == 1:
                             raise ValueError("quiver attempted to run a KIE calculation (isotopomer {0}) after an EIE calculation (isotopomer {1}). Check the frequency threshold.".format(name, eie_flag_iso))
                         else:
                             raise ValueError("quiver attempted to run an EIE calculation (isotopomer {0}) after a KIE calculation (isotopomer {1}). Check the frequency threshold.".format(name, eie_flag_iso))
@@ -184,7 +181,7 @@ class KIE_Calculation(object):
                 sub_ts = quiver.Isotopologue(id_, ts_system, ts_masses)
                 yield ((default_gs, sub_gs), (default_ts, sub_ts))
 
-    def machine_readable_string(self):
+    def get_dict(self):
         keys = list(self.KIES.keys())
         data = {}
         for name in keys:
@@ -192,8 +189,12 @@ class KIE_Calculation(object):
             data[KIE_obj.name] = {"uncorrected": KIE_obj.value[0],
                                   "wigner": KIE_obj.value[1],
                                   "inverted_parabola": KIE_obj.value[2]}
-            if SETTINGS.REPORT_REAL_FREQUENCIES:
+            if settings.REPORT_REAL_FREQUENCIES:
                 data[KIE_obj.name]["frequencies"] = KIE_obj.frequencies
+        return data
+
+    def machine_readable_string(self):
+        data = self.get_dict()
         return json.dumps(data, default=lambda o: o.tolist() if hasattr(o, "tolist") else float(o))
 
     def __str__(self):

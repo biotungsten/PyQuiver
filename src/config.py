@@ -113,12 +113,16 @@ class Config(object):
                 raise ValueError("must provide dict_config if use_dict is True")
             for k in config.keys():
                 try:
-                    config[k] = dict_config[k]
+                    dict_value = dict_config[k]
+                    if k in ["scaling", "temperature", "imag_threshold", "frequency_threshold"]:
+                        dict_value = float(dict_value)
+                    config[k] = dict_value
                 except KeyError:
                     if k == "frequency_threshold":
                         config["frequency_threshold"] = 0.0
                     else:
                         raise ValueError("missing config field in dict_config: %s" % k)
+            config["isotopologues"] = OrderedDict()
             isotopologues = dict_config["isotopologues"]
             if len(isotopologues) == 0:
                 raise ValueError("must specify at least one isotopologue in dict_config")
@@ -127,7 +131,7 @@ class Config(object):
                 for r in range(len(v)):
                     if len(v[r]) != 3:
                         raise ValueError("isotopologue replacements must be tuples of length 3 (from_atom, to_atom, replacement)")
-                    config["isotopologues"][k].append(tuple(int(v[r][0]), int(v[r][1]), str(v[r][2])))
+                    config["isotopologues"][k].append((int(v[r][0]), int(v[r][1]), str(v[r][2])))
                     if v[r][2] not in list(REPLACEMENTS.keys()):
                         raise ValueError("invalid isotopic replacement in dict_config: %s" % v[r][2])
 
