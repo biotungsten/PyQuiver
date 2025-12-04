@@ -48,15 +48,15 @@ class Isotopologue(object):
 
         # scatter masses into 2D array of combinations
         masses_ij = np.outer(np.array(self.masses), np.array(self.masses))
-
         # call sqrt once!
         # if we wanted we could take advantage of the symmetry of the matrix here...
         # but numpy is fast enough that it really doesn't matter
         inv_sqrt_masses = 1 / np.sqrt(masses_ij)
-
         # now we triple each dimension, to match the dimension of the hessian
         inv_sqrt_masses = np.repeat(inv_sqrt_masses, 3, 0)
         inv_sqrt_masses = np.repeat(inv_sqrt_masses, 3, 1)
+
+        
 
         # and use matrix multiplication to generate mw_hessian
         mass_weights = np.ravel(inv_sqrt_masses)
@@ -103,6 +103,11 @@ class Isotopologue(object):
             if len(imaginary_freqs) > 1 and settings.DEBUG >= 2:
                 print("WARNING: multiple imaginaries")
 
+            # Sometimes the rotational or translational modes can falsely appear negative. In that case they should still be dropped.
+            if len(imaginary_freqs) > 1 and min(imaginary_freqs.sort()[1:]) > -1:
+                print("WARNING: rotational or translational modes likely deteced as imaginary frequencies. These will be dropped.")
+                imaginary_freqs = imaginary_freqs[0]
+
             # strip the imaginary frequencies
             freqs = freqs[len(imaginary_freqs):]
 
@@ -114,6 +119,7 @@ class Isotopologue(object):
                 regular_freqs = freqs[1+DROP_NUM_LINEAR:]
 
             # bugfix 2/6/20: third argument is regular_freqs, not freqs!
+            print(f"Found imaginary freqs: {imaginary_freqs}")
             self.frequencies = (small_freqs, imaginary_freqs, np.array(regular_freqs), len(small_freqs))
             if settings.DEBUG >= 3:
                 self.dump_debug("freqs", self.frequencies)
