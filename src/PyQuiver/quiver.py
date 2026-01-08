@@ -7,10 +7,10 @@ import math
 
 import numpy as np
 
-import settings
-from utility import proj, normalize, test_orthogonality, schmidt
-from constants import DEFAULT_MASSES, PHYSICAL_CONSTANTS, LINEARITY_THRESHOLD, DROP_NUM_LINEAR
-from config import Config
+import PyQuiver.settings
+from PyQuiver.utility import proj, normalize, test_orthogonality, schmidt
+from PyQuiver.constants import DEFAULT_MASSES, PHYSICAL_CONSTANTS, LINEARITY_THRESHOLD, DROP_NUM_LINEAR
+from PyQuiver.config import Config
 
 # represents a geometric arrangement of atoms with specific masses
 class Isotopologue(object):

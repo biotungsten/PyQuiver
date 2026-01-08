@@ -1,8 +1,8 @@
 # This file reads PyQuiver configuration files. 
 import sys
 import re
-import settings
-from constants import REPLACEMENTS, REPLACEMENTS_Z
+import PyQuiver.settings as settings
+from PyQuiver.constants import REPLACEMENTS, REPLACEMENTS_Z
 from collections import OrderedDict
 
 # Reads PyQuiver .config files.

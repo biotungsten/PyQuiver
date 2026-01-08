@@ -4,10 +4,10 @@ import re
 import subprocess
 import argparse
 
-import settings
-import quiver
+import PyQuiver.settings as settings
+import PyQuiver.quiver as quiver
 
-from kie import KIE_Calculation
+from PyQuiver.kie import KIE_Calculation
 
 import glob
 

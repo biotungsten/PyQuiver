@@ -3,7 +3,7 @@ import sys
 import re
 import os
 import inspect
-import settings
+import PyQuiver.settings as settings
 ###############
 
 # Physical Constants

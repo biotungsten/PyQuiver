@@ -1,15 +1,14 @@
 # This calculates KIEs based on the Bigeleisen-Mayer equation.
 import numpy as np
 #from quiver import System, Isotopologue, DEBUG
-import quiver
+import PyQuiver.quiver as quiver
 import json
-import settings
-from config import Config
-from constants import DEFAULT_MASSES
+import PyQuiver.settings as settings
+from PyQuiver.config import Config
+from PyQuiver.constants import DEFAULT_MASSES, PHYSICAL_CONSTANTS, REPLACEMENTS
 from collections import OrderedDict
 
 # load constants
-from constants import PHYSICAL_CONSTANTS, REPLACEMENTS
 h  = PHYSICAL_CONSTANTS["h"]  # in J . s
 c  = PHYSICAL_CONSTANTS["c"]  # in cm . s
 kB = PHYSICAL_CONSTANTS["kB"] # in J/K
