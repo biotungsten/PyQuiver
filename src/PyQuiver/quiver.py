@@ -104,9 +104,11 @@ class Isotopologue(object):
                 print("WARNING: multiple imaginaries")
 
             # Sometimes the rotational or translational modes can falsely appear negative. In that case they should still be dropped.
-            if len(imaginary_freqs) > 1 and min(imaginary_freqs.sort()[1:]) > -1:
-                print("WARNING: rotational or translational modes likely deteced as imaginary frequencies. These will be dropped.")
-                imaginary_freqs = imaginary_freqs[0]
+            if len(imaginary_freqs) > 1:
+                imaginary_freqs.sort()
+                if min(imaginary_freqs[1:]) > -50:
+                    print("WARNING: rotational or translational modes likely deteced as imaginary frequencies. These will be dropped.")
+                    imaginary_freqs = [ifreq for ifreq in imaginary_freqs if ifreq < -50]
 
             # strip the imaginary frequencies
             freqs = freqs[len(imaginary_freqs):]
@@ -119,7 +121,6 @@ class Isotopologue(object):
                 regular_freqs = freqs[1+DROP_NUM_LINEAR:]
 
             # bugfix 2/6/20: third argument is regular_freqs, not freqs!
-            print(f"Found imaginary freqs: {imaginary_freqs}")
             self.frequencies = (small_freqs, imaginary_freqs, np.array(regular_freqs), len(small_freqs))
             if settings.DEBUG >= 3:
                 self.dump_debug("freqs", self.frequencies)
